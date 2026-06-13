@@ -8,8 +8,8 @@ config/features=PackedStringArray("4.3", "GL Compatibility")
 
 [display]
 
-window/size/viewport_width=480
-window/size/viewport_height=960
+window/size/viewport_width=400
+window/size/viewport_height=840
 window/stretch/mode="canvas_items"
 window/stretch/aspect="keep"
 window/handheld/orientation="portrait"
@@ -18,3 +18,7 @@ window/handheld/orientation="portrait"
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+
+[input_devices]
+
+pointing/emulate_mouse_from_touch=false
