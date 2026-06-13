@@ -154,7 +154,7 @@ func wave_size_for(n: int) -> int:
 func max_hp_for_wave(n: int) -> int:
 	# 8 sınırını tamamen kaldırdık. 
 	# Canları başlangıçta yavaş, oyun uzadıkça çok daha sert (üstel) artacak.
-	return 3 + int(pow(n, 1.35))
+	return 3 + int(pow(n, 1.15))
 
 func tower_dmg() -> int:
 	# Öldürmeye bağlı çığ gibi büyüyen gücü kaldırdık. 
