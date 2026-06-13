@@ -149,8 +149,10 @@ func wave_size_for(n: int) -> int:
 	return 4 + (n * 2)
 
 func max_hp_for_wave(n: int) -> int:
-	# 1. Dalga: 4 can | 10. Dalga: 18 can | 20. Dalga: 33 can
-	return 3 + int(n * 1.15)
+	# 1. Dalga: 4 can
+	# 15. Dalga: 27 can
+	# 30. Dalga: 58 can (Kulelerin hasarını yavaşça geride bırakmaya başlar)
+	return 3 + int(pow(n, 1.18))
 
 
 func tower_dmg() -> int:
@@ -382,7 +384,10 @@ func update_game() -> void:
 			i -= 1
 			continue
 
-		var speed := SPEED_SLOW if e.slow > 0 else SPEED_NORM
+		# Her dalgada askerlere +0.012 hız eklenir. Kulelerin vurma süresi yavaşça daralır.
+		var current_speed = SPEED_NORM + (wave_num * 0.012)
+		var speed := SPEED_SLOW if e.slow > 0 else current_speed
+		
 		var to_target: Vector2 = e.target_pos - e.pos
 		var d: float = to_target.length()
 		if d < speed * 1.3:
