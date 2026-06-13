@@ -152,9 +152,9 @@ func wave_size_for(n: int) -> int:
 
 
 func max_hp_for_wave(n: int) -> int:
-	# 8 sınırını tamamen kaldırdık. 
-	# Canları başlangıçta yavaş, oyun uzadıkça çok daha sert (üstel) artacak.
-	return 3 + int(pow(n, 1.15))
+	# Artık kavis yok. 1. dalgada 4 can, 10. dalgada 13 can, 20. dalgada 23 can.
+	# Dümdüz, dürüst ve kulelerin başa çıkabileceği bir artış.
+	return 3 + n
 
 func tower_dmg() -> int:
 	# Öldürmeye bağlı çığ gibi büyüyen gücü kaldırdık. 
@@ -162,9 +162,8 @@ func tower_dmg() -> int:
 	return 1 + int(wave_num / 4.0)
 
 func current_fire_rate() -> int:
-	# Atış hızı bekleme süresi (cooldown). Dalga arttıkça bekleme süresi düşer, kule hızlanır.
-	# 70'ten başlar, en fazla 25'e kadar düşerek çok absürt bir hıza ulaşmasını engeller.
-	return maxi(25, 70 - int(wave_num * 1.5))
+	# Başlangıç bekleme süresini 70'ten 60'a indirdik (kuleler artık başından beri daha seri).
+	return maxi(20, 60 - int(wave_num * 1.5))
 
 
 func recompute_astar() -> void:
