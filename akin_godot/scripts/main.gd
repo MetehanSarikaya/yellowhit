@@ -360,7 +360,7 @@ func update_game() -> void:
 			target.hp -= dmg
 			target.slow = 80
 			shots.append({"from": tpos, "to": target.pos, "age": 0})
-			tower_cooldowns[t] = current_fire_rate
+			tower_cooldowns[t] = current_fire_rate()
 
 	for s in shots:
 		s.age += 1
@@ -551,8 +551,8 @@ func draw_tower(t: Vector2i) -> void:
 	draw_polyline(core_pts + PackedVector2Array([core_pts[0]]), TOWER_DARK, 1.5)
 
 	# Cooldown Göstergesi (Etrafında dolan neon dolum halkası)
-	var cd: int = tower_cooldowns.get(t, 0)
-	var ready_ratio := 1.0 - (cd / float(current_fire_rate))
+	var cd: float = tower_cooldowns.get(t, 0)
+	var ready_ratio := 1.0 - (cd / float(current_fire_rate()))
 	
 	if ready_ratio > 0.01:
 		draw_arc(x, 10, -PI/2.0, -PI/2.0 + ready_ratio * TAU, 24, TOWER_COL, 2.0, true)
