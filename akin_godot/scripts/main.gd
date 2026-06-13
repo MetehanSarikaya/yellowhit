@@ -60,12 +60,7 @@ var next_spawn_fr := 0
 var wave_cooldown_set := false
 var wave_cooldown := 0
 
-var corners := [
-	Vector2i(0, 0),
-	Vector2i(COLS - 1, 0),
-	Vector2i(0, ROWS - 1),
-	Vector2i(COLS - 1, ROWS - 1),
-]
+
 
 var font: Font
 
@@ -111,23 +106,36 @@ func _process(_delta: float) -> void:
 func cell_center(c: Vector2i) -> Vector2:
 	return Vector2(c.x * CELL + CELL / 2.0, GTOP + c.y * CELL + CELL / 2.0)
 
+# Haritanın en dış çerçevesindeki tüm hücreleri verir
+func get_edge_cells() -> Array:
+	var edges: Array = []
+	for x in range(COLS):
+		edges.append(Vector2i(x, 0))
+		edges.append(Vector2i(x, ROWS - 1))
+	for y in range(1, ROWS - 1):
+		edges.append(Vector2i(0, y))
+		edges.append(Vector2i(COLS - 1, y))
+	return edges
 
-func farthest_corner(c: Vector2i) -> Vector2i:
-	var best: Vector2i = corners[0]
+# Kaleye en uzak kenar hücresini bulur (Oyun başı için)
+func farthest_edge(c: Vector2i) -> Vector2i:
+	var best := Vector2i(0, 0)
 	var bd := -1.0
-	for co in corners:
-		var d: float = Vector2(co - c).length()
+	for edge in get_edge_cells():
+		var d: float = Vector2(edge - c).length()
 		if d > bd:
 			bd = d
-			best = co
+			best = edge
 	return best
 
 
 func pick_next_spawn() -> Vector2i:
 	var candidates: Array = []
-	for c in corners:
-		if not astar_normal.get_id_path(c, castle_cell).is_empty():
+	for c in get_edge_cells():
+		# Kule dikilmemiş ve kaleye açık yolu olan tüm kenarları aday yap
+		if not towers.has(c) and not astar_normal.get_id_path(c, castle_cell).is_empty():
 			candidates.append(c)
+	
 	var others: Array = candidates.filter(func(c): return c != spawn_cell)
 	var pool: Array = others if others.size() > 0 else candidates
 	if pool.is_empty():
@@ -221,7 +229,7 @@ func handle_tap(pos: Vector2) -> void:
 
 	if phase == Phase.SETUP:
 		castle_cell = cell
-		spawn_cell = farthest_corner(castle_cell)
+		spawn_cell = farthest_edge(castle_cell)
 		recompute_astar()
 		next_spawn_cell = pick_next_spawn()
 		phase = Phase.PLAY
@@ -409,10 +417,13 @@ func _draw() -> void:
 	draw_top_bar()
 	draw_grid()
 
-	draw_cell_outline(spawn_cell, Color(ENEMY_COL.r, ENEMY_COL.g, ENEMY_COL.b, 0.35), 2.0)
-	if next_spawn_cell != spawn_cell:
-		var pulse := 0.4 + 0.3 * sin(fr * 0.15)
-		draw_cell_outline(next_spawn_cell, Color(CASTLE_COL.r, CASTLE_COL.g, CASTLE_COL.b, pulse), 2.5)
+	# Sıradaki giriş noktası (Sapsarı kare)
+	if next_spawn_cell != Vector2i(-1, -1):
+		var p := Vector2(next_spawn_cell.x * CELL, GTOP + next_spawn_cell.y * CELL)
+		# Dalga arası bekleyişteyse daha belirgin yanıp söner, dalga içindeyse saydam durur
+		var alpha := 0.6 + 0.3 * sin(fr * 0.1) if (wave_cooldown_set and enemies.is_empty()) else 0.3
+		draw_rect(Rect2(p, Vector2(CELL, CELL)), Color(CASTLE_COL.r, CASTLE_COL.g, CASTLE_COL.b, alpha), true)
+		draw_rect(Rect2(p, Vector2(CELL, CELL)), CASTLE_COL, false, 2.0)
 
 	for t in towers:
 		draw_tower(t)
@@ -514,15 +525,34 @@ func draw_ring(center: Vector2, radius: float, color: Color, width: float) -> vo
 
 func draw_tower(t: Vector2i) -> void:
 	var x: Vector2 = cell_center(t)
-	draw_circle(x, RANGE, Color(TOWER_COL.r, TOWER_COL.g, TOWER_COL.b, 0.05))
-	draw_rect(Rect2(x - Vector2(14, 14), Vector2(28, 28)), Color(TOWER_COL.r, TOWER_COL.g, TOWER_COL.b, 0.18), true)
-	draw_rect(Rect2(x - Vector2(14, 14), Vector2(28, 28)), TOWER_COL, false, 2.0)
-	draw_circle(x, 6, TOWER_COL)
+	
+	# Menzil dairesi (Görseli boğmaması için çok hafif saydam)
+	draw_circle(x, RANGE, Color(TOWER_COL.r, TOWER_COL.g, TOWER_COL.b, 0.03))
 
+	# Kule tabanı (Koyu metalik kare kaide)
+	draw_rect(Rect2(x - Vector2(12, 12), Vector2(24, 24)), Color(0.15, 0.18, 0.22), true)
+	draw_rect(Rect2(x - Vector2(12, 12), Vector2(24, 24)), TOWER_DARK, false, 1.5)
+
+	# Turret Kafası (Zırhlı elmas şekli)
+	var core_pts := PackedVector2Array([
+		x + Vector2(0, -8),
+		x + Vector2(8, 0),
+		x + Vector2(0, 8),
+		x + Vector2(-8, 0)
+	])
+	draw_colored_polygon(core_pts, Color(0.2, 0.25, 0.3))
+	draw_polyline(core_pts + PackedVector2Array([core_pts[0]]), TOWER_DARK, 1.5)
+
+	# Cooldown Göstergesi (Etrafında dolan neon dolum halkası)
 	var cd: int = tower_cooldowns.get(t, 0)
-	var ang := -PI / 2.0 + (cd / float(FIRE_RATE)) * TAU
-	var col2 := Color(1, 1, 1, 1) if cd < 8 else TOWER_DARK
-	draw_line(x, x + Vector2(cos(ang), sin(ang)) * 10, col2, 2.0)
+	var ready_ratio := 1.0 - (cd / float(FIRE_RATE))
+	
+	if ready_ratio > 0.01:
+		draw_arc(x, 10, -PI/2.0, -PI/2.0 + ready_ratio * TAU, 24, TOWER_COL, 2.0, true)
+
+	# Merkez Çekirdek Namlusu (Ateş etmeye hazırsa parlar)
+	var core_col = TOWER_COL if cd < 8 else TOWER_DARK
+	draw_circle(x, 3, core_col)
 
 
 func draw_castle() -> void:
