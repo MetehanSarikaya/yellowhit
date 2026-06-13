@@ -13,7 +13,6 @@ const H := GTOP + GRID_H + GBOTTOM
 # ---------- Oyun ayarları ----------
 const RANGE := CELL * 2.4
 const MAX_TOWERS := 10
-const FIRE_RATE := 70
 const SPEED_NORM := 1.15
 const SPEED_SLOW := 0.42
 const COOLDOWN_LEN := 170
@@ -132,8 +131,11 @@ func farthest_edge(c: Vector2i) -> Vector2i:
 func pick_next_spawn() -> Vector2i:
 	var candidates: Array = []
 	for c in get_edge_cells():
-		# Kule dikilmemiş ve kaleye açık yolu olan tüm kenarları aday yap
-		if not towers.has(c) and not astar_normal.get_id_path(c, castle_cell).is_empty():
+		# Kaleye temas eden (komşu) blokları bul (X ve Y farkı 1 veya daha az ise temas ediyordur)
+		var is_touching_castle = abs(c.x - castle_cell.x) <= 1 and abs(c.y - castle_cell.y) <= 1
+		
+		# Kule yoksa, kaleye temas etmiyorsa ve kaleye gidecek bir yolu varsa adaydır
+		if not towers.has(c) and not is_touching_castle and not astar_normal.get_id_path(c, castle_cell).is_empty():
 			candidates.append(c)
 	
 	var others: Array = candidates.filter(func(c): return c != spawn_cell)
@@ -141,7 +143,6 @@ func pick_next_spawn() -> Vector2i:
 	if pool.is_empty():
 		return spawn_cell
 	return pool[randi() % pool.size()]
-
 
 func wave_size_for(n: int) -> int:
 	var s := 1
@@ -155,7 +156,13 @@ func max_hp_for_wave(n: int) -> int:
 
 
 func tower_dmg() -> int:
-	return 1 + int(kills / 8.0)
+	# Hasar hem dalga sayısına hem de öldürmeye bağlı olarak hafifçe artar
+	return 1 + int(wave_num / 3.0) + int(kills / 25.0)
+
+func current_fire_rate() -> int:
+	# Atış hızı bekleme süresi (cooldown). Dalga arttıkça bekleme süresi düşer, kule hızlanır.
+	# 70'ten başlar, en fazla 25'e kadar düşerek çok absürt bir hıza ulaşmasını engeller.
+	return maxi(25, 70 - int(wave_num * 1.5))
 
 
 func recompute_astar() -> void:
@@ -353,7 +360,7 @@ func update_game() -> void:
 			target.hp -= dmg
 			target.slow = 80
 			shots.append({"from": tpos, "to": target.pos, "age": 0})
-			tower_cooldowns[t] = FIRE_RATE
+			tower_cooldowns[t] = current_fire_rate
 
 	for s in shots:
 		s.age += 1
@@ -545,7 +552,7 @@ func draw_tower(t: Vector2i) -> void:
 
 	# Cooldown Göstergesi (Etrafında dolan neon dolum halkası)
 	var cd: int = tower_cooldowns.get(t, 0)
-	var ready_ratio := 1.0 - (cd / float(FIRE_RATE))
+	var ready_ratio := 1.0 - (cd / float(current_fire_rate))
 	
 	if ready_ratio > 0.01:
 		draw_arc(x, 10, -PI/2.0, -PI/2.0 + ready_ratio * TAU, 24, TOWER_COL, 2.0, true)
@@ -588,12 +595,41 @@ func draw_castle() -> void:
 func draw_enemy(e: Dictionary) -> void:
 	var p: Vector2 = e.pos
 	var col := CASTLE_COL if e.explorer else ENEMY_COL
+	var dark_col := CASTLE_DARK if e.explorer else ENEMY_DARK
 
-	draw_circle(p, 9, col)
+	# 1. Zırhlı Gövde (Performans dostu 4 noktalı poligon)
+	var body_pts := PackedVector2Array([
+		p + Vector2(0, -10),
+		p + Vector2(10, 0),
+		p + Vector2(0, 10),
+		p + Vector2(-10, 0),
+		p + Vector2(0, -10) # Çizgiyi kapatmak için başa dön
+	])
+	
+	# İçini koyu renkle doldur, dışına neon hat çek
+	draw_colored_polygon(body_pts, dark_col)
+	draw_polyline(body_pts, col, 1.5)
 
+	# 2. Parlayan Çekirdek Göz
+	draw_circle(p, 3.5, col)
+
+	# 3. Can Barı (Kompakt, ince ve şık)
 	var frac: float = float(e.hp) / float(e.maxhp)
-	draw_rect(Rect2(p + Vector2(-12, -20), Vector2(24, 4)), Color(1, 1, 1, 0.15), true)
-	draw_rect(Rect2(p + Vector2(-12, -20), Vector2(24 * frac, 4)), ENEMY_COL, true)
+	var bar_w := 16.0
+	var bar_pos := p + Vector2(-bar_w / 2.0, -16)
+	
+	# Siyah arka plan ve can oranına göre dolan renk
+	draw_rect(Rect2(bar_pos, Vector2(bar_w, 3)), Color(0, 0, 0, 0.6), true)
+	draw_rect(Rect2(bar_pos, Vector2(bar_w * frac, 3)), col, true)
 
+	# 4. Yavaşlatma Efekti (Ağır yuvarlak yerine hafif genişleyen elmas)
 	if e.slow > 0:
-		draw_ring(p, 13, Color(TOWER_COL.r, TOWER_COL.g, TOWER_COL.b, 0.5), 1.5)
+		var pulse := 1.0 + 0.2 * sin(fr * 0.3)
+		var aura_pts := PackedVector2Array([
+			p + Vector2(0, -14 * pulse),
+			p + Vector2(14 * pulse, 0),
+			p + Vector2(0, 14 * pulse),
+			p + Vector2(-14 * pulse, 0),
+			p + Vector2(0, -14 * pulse)
+		])
+		draw_polyline(aura_pts, Color(TOWER_COL.r, TOWER_COL.g, TOWER_COL.b, 0.7), 1.0)
