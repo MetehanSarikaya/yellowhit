@@ -526,22 +526,33 @@ func draw_tower(t: Vector2i) -> void:
 
 
 func draw_castle() -> void:
-	var x: Vector2 = cell_center(castle_cell)
-	var s := CELL * 0.46
+	var c: Vector2 = cell_center(castle_cell)
 
-	draw_rect(Rect2(x - Vector2(s, s * 0.6), Vector2(s * 2, s * 1.6)), Color(0.667, 0.663, 0.627), true)
-	for i in range(-1, 2):
-		draw_rect(Rect2(x + Vector2(-s + i * s * 0.7 - 5, -s * 0.6 - 12), Vector2(s * 0.5, 12)), Color(0.549, 0.545, 0.510), true)
+	# Alt kaide (Koyu metal/taş taban)
+	draw_rect(Rect2(c.x - 14, c.y + 6, 28, 8), Color(0.25, 0.28, 0.32), true)
+	draw_rect(Rect2(c.x - 10, c.y + 2, 20, 4), Color(0.35, 0.38, 0.42), true)
 
-	draw_rect(Rect2(x + Vector2(-2, -s * 1.5), Vector2(4, s * 0.9)), CASTLE_COL, true)
-	var pts := PackedVector2Array([
-		x + Vector2(2, -s * 1.5),
-		x + Vector2(2, -s * 1.1),
-		x + Vector2(22, -s * 1.3),
+	# Dış çekirdek (Koyu sarı elmas)
+	var core_pts := PackedVector2Array([
+		Vector2(c.x, c.y - 16),
+		Vector2(c.x + 10, c.y - 2),
+		Vector2(c.x, c.y + 8),
+		Vector2(c.x - 10, c.y - 2)
 	])
-	draw_colored_polygon(pts, CASTLE_COL)
+	draw_colored_polygon(core_pts, CASTLE_DARK)
 
-	draw_rect(Rect2(x - Vector2(s, s * 0.6), Vector2(s * 2, s * 1.6)), CASTLE_DARK, false, 2.0)
+	# İç çekirdek (Parlayan sarı merkez)
+	var core_inner := PackedVector2Array([
+		Vector2(c.x, c.y - 10),
+		Vector2(c.x + 5, c.y - 2),
+		Vector2(c.x, c.y + 4),
+		Vector2(c.x - 5, c.y - 2)
+	])
+	draw_colored_polygon(core_inner, CASTLE_COL)
+
+	# Çekirdeğin etrafında nabız gibi atan enerji kalkanı
+	var pulse := 1.0 + 0.15 * sin(fr * 0.1)
+	draw_arc(c + Vector2(0, -2), 16 * pulse, 0, TAU, 24, Color(CASTLE_COL.r, CASTLE_COL.g, CASTLE_COL.b, 0.6), 1.5, true)
 
 
 func draw_enemy(e: Dictionary) -> void:
