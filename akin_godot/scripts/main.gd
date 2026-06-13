@@ -139,7 +139,7 @@ func wave_size_for(n: int) -> int:
 	var s := 1
 	for i in range(1, n):
 		s = int(ceil(s * 1.25)) + 1
-	return min(s, 25)
+	return s
 
 
 func max_hp_for_wave(n: int) -> int:
