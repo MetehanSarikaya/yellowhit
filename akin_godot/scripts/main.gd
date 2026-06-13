@@ -145,26 +145,21 @@ func pick_next_spawn() -> Vector2i:
 	return pool[randi() % pool.size()]
 
 func wave_size_for(n: int) -> int:
-	var s := 1
-	for i in range(1, n):
-		s = int(ceil(s * 1.25)) + 1
-	return s
-
+	# 1. Dalga: 6 asker | 10. Dalga: 24 asker | 20. Dalga: 44 asker
+	return 4 + (n * 2)
 
 func max_hp_for_wave(n: int) -> int:
-	# Artık kavis yok. 1. dalgada 4 can, 10. dalgada 13 can, 20. dalgada 23 can.
-	# Dümdüz, dürüst ve kulelerin başa çıkabileceği bir artış.
-	return 3 + n
+	# 1. Dalga: 4 can | 10. Dalga: 18 can | 20. Dalga: 33 can
+	return 3 + int(n * 1.15)
+
 
 func tower_dmg() -> int:
-	# Öldürmeye bağlı çığ gibi büyüyen gücü kaldırdık. 
-	# Artık sadece dalga sayısı arttıkça (her 4 dalgada bir) tatlı tatlı güçlenecekler.
-	return 1 + int(wave_num / 4.0)
+	# Her 3 dalgada bir hasar 1 artar.
+	return 1 + int(wave_num / 3.0)
 
 func current_fire_rate() -> int:
-	# Başlangıç bekleme süresini 70'ten 60'a indirdik (kuleler artık başından beri daha seri).
-	return maxi(20, 60 - int(wave_num * 1.5))
-
+	# 55 kareden başlar, oyun sonu makineli tüfek gibi 15 kareye kadar iner.
+	return maxi(15, 55 - wave_num)
 
 func recompute_astar() -> void:
 	for x in range(COLS):
@@ -328,7 +323,7 @@ func spawn_enemy() -> void:
 func update_game() -> void:
 	fr += 1
 
-	var spawn_interval: int = max(6, 24 - wave_num * 2)
+	var spawn_interval: int = max(12, 35 - wave_num)
 	if spawn_queue > 0 and fr >= next_spawn_fr:
 		spawn_enemy()
 		spawn_queue -= 1
