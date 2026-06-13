@@ -3,11 +3,12 @@ extends Node2D
 # ---------- Grid ayarları ----------
 const COLS := 10
 const ROWS := 18
-const CELL := 48
-const GTOP := 96
+const CELL := 40
+const GTOP := 80
+const GBOTTOM := 40
 const W := COLS * CELL
-const H := GTOP + ROWS * CELL
-
+const GRID_H := ROWS * CELL
+const H := GTOP + GRID_H + GBOTTOM
 # ---------- Oyun ayarları ----------
 const RANGE := CELL * 2.4
 const MAX_TOWERS := 10
