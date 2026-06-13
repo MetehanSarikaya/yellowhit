@@ -312,7 +312,7 @@ func spawn_enemy() -> void:
 func update_game() -> void:
 	fr += 1
 
-	var spawn_interval: max(6, 24 - wave_num * 2)
+	var spawn_interval: int = max(6, 24 - wave_num * 2)
 	if spawn_queue > 0 and fr >= next_spawn_fr:
 		spawn_enemy()
 		spawn_queue -= 1
@@ -450,7 +450,7 @@ func draw_button(rect: Rect2, text: String, accent: Color) -> void:
 
 
 func draw_menu() -> void:
-	draw_centered_text(Vector2(W / 2.0, 140), "AKIN", 40, CASTLE_COL)
+	draw_centered_text(Vector2(W / 2.0, 140), "cavac", 40, CASTLE_COL)
 	draw_centered_text(Vector2(W / 2.0, 180), "kaleni savun", 9, Color(1, 1, 1, 0.5))
 
 	draw_button(START_BTN, "BAŞLA", TOWER_COL)
