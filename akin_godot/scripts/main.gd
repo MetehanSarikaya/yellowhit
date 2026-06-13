@@ -1,21 +1,22 @@
 extends Node2D
 
 # ---------- Grid ayarları ----------
-const COLS := 10
-const ROWS := 18
-const CELL := 40
+const COLS := 9
+const ROWS := 17
+const CELL := 44
 const GTOP := 80
-const GBOTTOM := 40
+const GBOTTOM := 34
 const W := COLS * CELL
 const GRID_H := ROWS * CELL
 const H := GTOP + GRID_H + GBOTTOM
+
 # ---------- Oyun ayarları ----------
 const RANGE := CELL * 2.4
 const MAX_TOWERS := 10
-const FIRE_RATE := 70          # frame cinsinden ateş aralığı
-const SPEED_NORM := 1.15       # px/frame
+const FIRE_RATE := 70
+const SPEED_NORM := 1.15
 const SPEED_SLOW := 0.42
-const COOLDOWN_LEN := 170       # dalgalar arası "inşa" penceresi (frame)
+const COOLDOWN_LEN := 170
 const EXPLORER_CHANCE := 0.35
 
 # ---------- Renkler ----------
@@ -25,11 +26,16 @@ const TOWER_COL := Color(0.31, 0.80, 0.77)
 const TOWER_DARK := Color(0.12, 0.55, 0.45)
 const CASTLE_COL := Color(1.0, 0.85, 0.24)
 const CASTLE_DARK := Color(0.79, 0.65, 0.15)
-const BG_COL := Color(0.047, 0.067, 0.094)
+const PANEL_COL := Color(1, 1, 1, 0.05)
+const PANEL_BORDER := Color(1, 1, 1, 0.10)
 
-enum Phase { SETUP, PLAY, OVER }
+# ---------- Menü / UI ----------
+const START_BTN := Rect2(100, 260, 200, 56)
+const RESTART_BTN := Rect2(90, H / 2.0 + 60, 220, 56)
 
-var phase := Phase.SETUP
+enum Phase { MENU, SETUP, PLAY, OVER }
+
+var phase := Phase.MENU
 var fr := 0
 var castle_hp := 10
 var kills := 0
@@ -40,11 +46,11 @@ var castle_cell := Vector2i(-1, -1)
 var spawn_cell := Vector2i(-1, -1)
 var next_spawn_cell := Vector2i(-1, -1)
 
-var towers: Array = []                 # Vector2i listesi
-var tower_cooldowns: Dictionary = {}   # Vector2i -> int
+var towers: Array = []
+var tower_cooldowns: Dictionary = {}
 
-var enemies: Array = []                # Dictionary listesi
-var shots: Array = []                  # {from, to, age}
+var enemies: Array = []
+var shots: Array = []
 
 var astar_normal := AStarGrid2D.new()
 var astar_weighted := AStarGrid2D.new()
@@ -63,15 +69,33 @@ var corners := [
 
 var font: Font
 
+var bg_palette := [
+	Color(0.047, 0.067, 0.094),
+	Color(0.094, 0.055, 0.110),
+	Color(0.047, 0.094, 0.078),
+	Color(0.102, 0.075, 0.047),
+	Color(0.02, 0.02, 0.02),
+]
+var bg_idx := 0
+var current_bg: Color = bg_palette[0]
+var swatch_rects: Array = []
+
 
 func _ready() -> void:
-	font = ThemeDB.fallback_font
+	font = load("res://assets/fonts/PressStart2P-Regular.ttf")
+	if font == null:
+		font = ThemeDB.fallback_font
 
 	for astar in [astar_normal, astar_weighted]:
 		astar.region = Rect2i(0, 0, COLS, ROWS)
 		astar.cell_size = Vector2(CELL, CELL)
 		astar.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_NEVER
 		astar.update()
+
+	swatch_rects.clear()
+	for i in range(bg_palette.size()):
+		var x := 62.0 + i * (44.0 + 14.0)
+		swatch_rects.append(Rect2(x, 410, 44, 44))
 
 
 func _process(_delta: float) -> void:
@@ -173,8 +197,20 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func handle_tap(pos: Vector2) -> void:
+	if phase == Phase.MENU:
+		if START_BTN.has_point(pos):
+			phase = Phase.SETUP
+			return
+		for i in range(swatch_rects.size()):
+			if swatch_rects[i].has_point(pos):
+				bg_idx = i
+				current_bg = bg_palette[i]
+				return
+		return
+
 	if phase == Phase.OVER:
-		reset_game()
+		if RESTART_BTN.has_point(pos):
+			reset_game()
 		return
 
 	var cx := int(floor(pos.x / CELL))
@@ -192,7 +228,6 @@ func handle_tap(pos: Vector2) -> void:
 		start_wave()
 		return
 
-	# Var olan kuleye dokunma -> kaldır
 	var idx := towers.find(cell)
 	if idx >= 0:
 		towers.remove_at(idx)
@@ -252,7 +287,6 @@ func start_wave() -> void:
 	cur_wave_size = wave_size_for(wave_num)
 	spawn_queue = cur_wave_size
 	next_spawn_fr = fr + 30
-	play_sfx($SfxWave)
 
 
 func spawn_enemy() -> void:
@@ -278,7 +312,7 @@ func spawn_enemy() -> void:
 func update_game() -> void:
 	fr += 1
 
-	var spawn_interval: int = max(6, 24 - wave_num * 2)
+	var spawn_interval := max(6, 24 - wave_num * 2)
 	if spawn_queue > 0 and fr >= next_spawn_fr:
 		spawn_enemy()
 		spawn_queue -= 1
@@ -293,7 +327,6 @@ func update_game() -> void:
 		wave_cooldown_set = false
 		start_wave()
 
-	# Kuleler ateş ediyor
 	var dmg := tower_dmg()
 	for t in towers:
 		var cd: int = tower_cooldowns.get(t, 0)
@@ -313,13 +346,11 @@ func update_game() -> void:
 			target.slow = 80
 			shots.append({"from": tpos, "to": target.pos, "age": 0})
 			tower_cooldowns[t] = FIRE_RATE
-			play_sfx($SfxShoot)
 
 	for s in shots:
 		s.age += 1
 	shots = shots.filter(func(s): return s.age <= 8)
 
-	# Askerler hareket ediyor
 	var i := enemies.size() - 1
 	while i >= 0:
 		var e: Dictionary = enemies[i]
@@ -334,7 +365,6 @@ func update_game() -> void:
 			castle_hp -= 1
 			enemies.remove_at(i)
 			Input.vibrate_handheld(80)
-			play_sfx($SfxHit)
 			if castle_hp <= 0:
 				phase = Phase.OVER
 				Input.vibrate_handheld(250)
@@ -360,27 +390,25 @@ func update_game() -> void:
 		i -= 1
 
 
-func play_sfx(player: AudioStreamPlayer) -> void:
-	if player.stream != null:
-		player.play()
-
-
 # ============================================================
 # ÇİZİM
 # ============================================================
 
 func _draw() -> void:
-	draw_rect(Rect2(0, 0, W, H), BG_COL, true)
+	draw_rect(Rect2(0, 0, W, H), current_bg, true)
+
+	if phase == Phase.MENU:
+		draw_menu()
+		return
 
 	if phase == Phase.SETUP:
 		draw_grid()
-		draw_centered_text(Vector2(W / 2.0, H / 2.0), "kalenin yerini seç", 22, Color(1, 1, 1, 0.6))
+		draw_centered_text(Vector2(W / 2.0, H / 2.0), "kalenin yerini seç", 12, Color(1, 1, 1, 0.6))
 		return
 
 	draw_top_bar()
 	draw_grid()
 
-	# giriş noktaları
 	draw_cell_outline(spawn_cell, Color(ENEMY_COL.r, ENEMY_COL.g, ENEMY_COL.b, 0.35), 2.0)
 	if next_spawn_cell != spawn_cell:
 		var pulse := 0.4 + 0.3 * sin(fr * 0.15)
@@ -398,16 +426,16 @@ func _draw() -> void:
 		var a: float = 1.0 - s.age / 8.0
 		draw_line(s.from, s.to, Color(1, 1, 1, a * 0.8), 2.0)
 
-	draw_string(font, Vector2(20, H - 14), "kule: %d/%d" % [towers.size(), MAX_TOWERS], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(1, 1, 1, 0.3))
+	draw_bottom_badge()
 
 	if wave_cooldown_set and enemies.is_empty():
-		draw_centered_text(Vector2(W / 2.0, GTOP + 50), "sarı kare = sıradaki giriş, hazırlan!", 16, Color(CASTLE_COL.r, CASTLE_COL.g, CASTLE_COL.b, 0.8))
+		draw_centered_text(Vector2(W / 2.0, GTOP + 24), "sıradaki giriş -> sarı kare", 8, Color(CASTLE_COL.r, CASTLE_COL.g, CASTLE_COL.b, 0.85))
 
 	if phase == Phase.OVER:
-		draw_rect(Rect2(0, 0, W, H), Color(0, 0, 0, 0.55), true)
-		draw_centered_text(Vector2(W / 2.0, H / 2.0 - 24), "kale düştü", 28, Color(1, 1, 1, 1))
-		draw_centered_text(Vector2(W / 2.0, H / 2.0 + 14), "ulaştığın dalga: %d — öldürülen: %d" % [wave_num, kills], 18, Color(1, 1, 1, 0.7))
-		draw_centered_text(Vector2(W / 2.0, H / 2.0 + 46), "tekrar oynamak için dokun", 18, Color(1, 1, 1, 0.6))
+		draw_rect(Rect2(0, 0, W, H), Color(0, 0, 0, 0.6), true)
+		draw_centered_text(Vector2(W / 2.0, H / 2.0 - 70), "KALE DÜŞTÜ", 16, Color(1, 1, 1, 1))
+		draw_centered_text(Vector2(W / 2.0, H / 2.0 - 30), "dalga %d  öldürülen %d" % [wave_num, kills], 10, Color(1, 1, 1, 0.6))
+		draw_button(RESTART_BTN, "TEKRAR OYNA", CASTLE_COL)
 
 
 func draw_centered_text(pos: Vector2, text: String, size: int, color: Color) -> void:
@@ -415,18 +443,54 @@ func draw_centered_text(pos: Vector2, text: String, size: int, color: Color) -> 
 	draw_string(font, pos - Vector2(w / 2.0, 0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
 
 
-func draw_top_bar() -> void:
-	draw_rect(Rect2(20, 28, W - 40, 12), Color(1, 1, 1, 0.1), true)
-	var hp_color := CASTLE_COL if castle_hp > 3 else ENEMY_COL
-	draw_rect(Rect2(20, 28, (W - 40) * (castle_hp / 10.0), 12), hp_color, true)
-	draw_string(font, Vector2(20, 64), "kale canı", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1, 1, 1, 0.45))
+func draw_button(rect: Rect2, text: String, accent: Color) -> void:
+	draw_rect(rect, Color(accent.r, accent.g, accent.b, 0.18), true)
+	draw_rect(rect, accent, false, 2.0)
+	draw_centered_text(rect.position + rect.size / 2.0 + Vector2(0, 4), text, 12, Color(1, 1, 1, 1))
 
-	var right1 := "öldürülen: %d  güç:x%d" % [kills, tower_dmg()]
-	var right2 := "dalga %d (%d)" % [wave_num, cur_wave_size]
-	var w1: float = font.get_string_size(right1, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x
-	var w2: float = font.get_string_size(right2, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x
-	draw_string(font, Vector2(W - 20 - w1, 52), right1, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1, 1, 1, 0.45))
-	draw_string(font, Vector2(W - 20 - w2, 76), right2, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(1, 1, 1, 0.45))
+
+func draw_menu() -> void:
+	draw_centered_text(Vector2(W / 2.0, 140), "AKIN", 40, CASTLE_COL)
+	draw_centered_text(Vector2(W / 2.0, 180), "kaleni savun", 9, Color(1, 1, 1, 0.5))
+
+	draw_button(START_BTN, "BAŞLA", TOWER_COL)
+
+	draw_centered_text(Vector2(W / 2.0, 380), "ARKAPLAN", 9, Color(1, 1, 1, 0.4))
+	for i in range(bg_palette.size()):
+		var r: Rect2 = swatch_rects[i]
+		draw_rect(r, bg_palette[i], true)
+		var border_col := CASTLE_COL if i == bg_idx else Color(1, 1, 1, 0.15)
+		var border_w := 3.0 if i == bg_idx else 1.0
+		draw_rect(r, border_col, false, border_w)
+
+	draw_centered_text(Vector2(W / 2.0, 600), "kaleni yerleştir, kule dik,", 9, Color(1, 1, 1, 0.4))
+	draw_centered_text(Vector2(W / 2.0, 622), "dalgaları durdur", 9, Color(1, 1, 1, 0.4))
+
+
+func draw_top_bar() -> void:
+	var panel := Rect2(10, 8, W - 20, GTOP - 16)
+	draw_rect(panel, PANEL_COL, true)
+	draw_rect(panel, PANEL_BORDER, false, 1.0)
+
+	draw_string(font, panel.position + Vector2(12, 26), "DALGA %d" % wave_num, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1, 1, 1, 0.85))
+	draw_string(font, panel.position + Vector2(12, 48), "x%d  oldurulen %d" % [tower_dmg(), kills], HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(1, 1, 1, 0.45))
+
+	var pip := 8.0
+	var gap := 3.0
+	var total_w := 10 * pip + 9 * gap
+	var start_x := panel.position.x + panel.size.x - total_w - 10
+	for i in range(10):
+		var x := start_x + i * (pip + gap)
+		var col := CASTLE_COL if i < castle_hp else Color(1, 1, 1, 0.12)
+		draw_rect(Rect2(Vector2(x, panel.position.y + 14), Vector2(pip, pip)), col, true)
+	draw_string(font, Vector2(start_x, panel.position.y + 36), "KALE CANI", HORIZONTAL_ALIGNMENT_LEFT, -1, 7, Color(1, 1, 1, 0.35))
+
+
+func draw_bottom_badge() -> void:
+	var r := Rect2(10, GTOP + GRID_H + 8, 110, 24)
+	draw_rect(r, PANEL_COL, true)
+	draw_rect(r, PANEL_BORDER, false, 1.0)
+	draw_string(font, r.position + Vector2(10, 17), "KULE %d/%d" % [towers.size(), MAX_TOWERS], HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(1, 1, 1, 0.5))
 
 
 func draw_grid() -> void:
@@ -451,14 +515,14 @@ func draw_ring(center: Vector2, radius: float, color: Color, width: float) -> vo
 func draw_tower(t: Vector2i) -> void:
 	var x: Vector2 = cell_center(t)
 	draw_circle(x, RANGE, Color(TOWER_COL.r, TOWER_COL.g, TOWER_COL.b, 0.05))
-	draw_rect(Rect2(x - Vector2(17, 17), Vector2(34, 34)), Color(TOWER_COL.r, TOWER_COL.g, TOWER_COL.b, 0.18), true)
-	draw_rect(Rect2(x - Vector2(17, 17), Vector2(34, 34)), TOWER_COL, false, 2.0)
-	draw_circle(x, 7, TOWER_COL)
+	draw_rect(Rect2(x - Vector2(14, 14), Vector2(28, 28)), Color(TOWER_COL.r, TOWER_COL.g, TOWER_COL.b, 0.18), true)
+	draw_rect(Rect2(x - Vector2(14, 14), Vector2(28, 28)), TOWER_COL, false, 2.0)
+	draw_circle(x, 6, TOWER_COL)
 
 	var cd: int = tower_cooldowns.get(t, 0)
 	var ang := -PI / 2.0 + (cd / float(FIRE_RATE)) * TAU
 	var col2 := Color(1, 1, 1, 1) if cd < 8 else TOWER_DARK
-	draw_line(x, x + Vector2(cos(ang), sin(ang)) * 12, col2, 2.5)
+	draw_line(x, x + Vector2(cos(ang), sin(ang)) * 10, col2, 2.0)
 
 
 func draw_castle() -> void:

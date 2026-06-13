@@ -1,18 +1,18 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://ngkodpwou16f"]
 
-[ext_resource type="Script" path="res://scripts/main.gd" id="1"]
+[ext_resource type="Script" uid="uid://fxxl0yc4ps4v" path="res://scripts/main.gd" id="1"]
 
-[node name="Main" type="Node2D"]
+[node name="Main" type="Node2D" unique_id=26674538]
 script = ExtResource("1")
 
-[node name="MusicPlayer" type="AudioStreamPlayer" parent="."]
+[node name="MusicPlayer" type="AudioStreamPlayer" parent="." unique_id=869116701]
 volume_db = -6.0
 
-[node name="SfxShoot" type="AudioStreamPlayer" parent="."]
+[node name="SfxShoot" type="AudioStreamPlayer" parent="." unique_id=1114698442]
 volume_db = -4.0
 
-[node name="SfxHit" type="AudioStreamPlayer" parent="."]
+[node name="SfxHit" type="AudioStreamPlayer" parent="." unique_id=2122289620]
 volume_db = -2.0
 
-[node name="SfxWave" type="AudioStreamPlayer" parent="."]
+[node name="SfxWave" type="AudioStreamPlayer" parent="." unique_id=743853262]
 volume_db = -2.0
