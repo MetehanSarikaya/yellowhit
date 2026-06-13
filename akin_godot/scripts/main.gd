@@ -13,8 +13,8 @@ const H := GTOP + GRID_H + GBOTTOM
 const RANGE := CELL * 2.4
 const MAX_TOWERS := 10
 const FIRE_RATE := 70          # frame cinsinden ateş aralığı
-const SPEED_NORM := 1.4        # px/frame
-const SPEED_SLOW := 0.5
+const SPEED_NORM := 1.15       # px/frame
+const SPEED_SLOW := 0.42
 const COOLDOWN_LEN := 170       # dalgalar arası "inşa" penceresi (frame)
 const EXPLORER_CHANCE := 0.35
 
