@@ -114,8 +114,8 @@ func pick_next_spawn() -> Vector2i:
 func wave_size_for(n: int) -> int:
 	var s := 1
 	for i in range(1, n):
-		s = int(ceil(s * 1.5)) + 1
-	return s
+		s = int(ceil(s * 1.25)) + 1
+	return min(s, 25)
 
 
 func max_hp_for_wave(n: int) -> int:
@@ -432,7 +432,7 @@ func draw_top_bar() -> void:
 func draw_grid() -> void:
 	var col := Color(1, 1, 1, 0.04)
 	for cx in range(COLS + 1):
-		draw_line(Vector2(cx * CELL, GTOP), Vector2(cx * CELL, H), col, 1.0)
+		draw_line(Vector2(cx * CELL, GTOP), Vector2(cx * CELL, GTOP + GRID_H), col, 1.0)
 	for cy in range(ROWS + 1):
 		draw_line(Vector2(0, GTOP + cy * CELL), Vector2(W, GTOP + cy * CELL), col, 1.0)
 
@@ -463,7 +463,7 @@ func draw_tower(t: Vector2i) -> void:
 
 func draw_castle() -> void:
 	var x: Vector2 = cell_center(castle_cell)
-	var s := CELL * 0.62
+	var s := CELL * 0.46
 
 	draw_rect(Rect2(x - Vector2(s, s * 0.6), Vector2(s * 2, s * 1.6)), Color(0.667, 0.663, 0.627), true)
 	for i in range(-1, 2):
@@ -482,18 +482,13 @@ func draw_castle() -> void:
 
 func draw_enemy(e: Dictionary) -> void:
 	var p: Vector2 = e.pos
-	if e.explorer:
-		draw_ring(p, 16, Color(CASTLE_COL.r, CASTLE_COL.g, CASTLE_COL.b, 0.45), 2.0)
+	var col := CASTLE_COL if e.explorer else ENEMY_COL
 
-	draw_circle(p + Vector2(0, 6), 11, ENEMY_COL)
-	draw_circle(p + Vector2(0, -6), 9, Color(1, 0.88, 0.74))
-	draw_circle(p + Vector2(0, -10), 9, ENEMY_DARK)
-	draw_circle(p + Vector2(-3, -6), 1.5, Color(0.17, 0.17, 0.17))
-	draw_circle(p + Vector2(3, -6), 1.5, Color(0.17, 0.17, 0.17))
+	draw_circle(p, 9, col)
 
 	var frac: float = float(e.hp) / float(e.maxhp)
-	draw_rect(Rect2(p + Vector2(-18, -30), Vector2(36, 5)), Color(1, 1, 1, 0.15), true)
-	draw_rect(Rect2(p + Vector2(-18, -30), Vector2(36 * frac, 5)), ENEMY_COL, true)
+	draw_rect(Rect2(p + Vector2(-12, -20), Vector2(24, 4)), Color(1, 1, 1, 0.15), true)
+	draw_rect(Rect2(p + Vector2(-12, -20), Vector2(24 * frac, 4)), ENEMY_COL, true)
 
 	if e.slow > 0:
-		draw_ring(p, 18, Color(TOWER_COL.r, TOWER_COL.g, TOWER_COL.b, 0.5), 1.5)
+		draw_ring(p, 13, Color(TOWER_COL.r, TOWER_COL.g, TOWER_COL.b, 0.5), 1.5)
