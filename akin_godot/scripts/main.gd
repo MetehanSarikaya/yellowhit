@@ -312,7 +312,7 @@ func spawn_enemy() -> void:
 func update_game() -> void:
 	fr += 1
 
-	var spawn_interval := max(6, 24 - wave_num * 2)
+	var spawn_interval: max(6, 24 - wave_num * 2)
 	if spawn_queue > 0 and fr >= next_spawn_fr:
 		spawn_enemy()
 		spawn_queue -= 1
