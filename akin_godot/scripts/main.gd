@@ -152,7 +152,7 @@ func max_hp_for_wave(n: int) -> int:
 	# 1. Dalga: 4 can
 	# 15. Dalga: 27 can
 	# 30. Dalga: 58 can (Kulelerin hasarını yavaşça geride bırakmaya başlar)
-	return 3 + int(pow(n, 1.18))
+	return 3 + int(pow(n, 1.22))
 
 
 func tower_dmg() -> int:
@@ -164,17 +164,28 @@ func current_fire_rate() -> int:
 	return maxi(15, 55 - wave_num)
 
 func recompute_astar() -> void:
+	# Kulelerin merkez koordinatlarını döngüye girmeden bir kere hesapla
+	var tower_centers: Array = []
+	for t in towers:
+		tower_centers.append(cell_center(t))
+		
+	var range_sq := RANGE * RANGE
+		
 	for x in range(COLS):
 		for y in range(ROWS):
 			var p := Vector2i(x, y)
 			var solid: bool = towers.has(p)
 			astar_normal.set_point_solid(p, solid)
 			astar_weighted.set_point_solid(p, solid)
+			
 			var w := 1.0
 			var pc := cell_center(p)
-			for t in towers:
-				if pc.distance_to(cell_center(t)) <= RANGE:
+			
+			# Sadece önceden hesaplanmış merkezleri kullanarak hızlı mesafe kontrolü yap
+			for tc in tower_centers:
+				if pc.distance_squared_to(tc) <= range_sq:
 					w += 2.0
+					
 			astar_weighted.set_point_weight_scale(p, min(w, 7.0))
 
 
@@ -341,19 +352,25 @@ func update_game() -> void:
 		start_wave()
 
 	var dmg := tower_dmg()
+	var range_sq := RANGE * RANGE # Menzilin karesini bir kere hesapla
+	
 	for t in towers:
-		var cd: int = tower_cooldowns.get(t, 0)
+		var cd: float = tower_cooldowns.get(t, 0)
 		if cd > 0:
 			tower_cooldowns[t] = cd - 1
 			continue
+			
 		var tpos := cell_center(t)
 		var target = null
-		var bd := INF
+		var bd_sq := INF # En yakın mesafenin karesi
+		
 		for e in enemies:
-			var d: float = e.pos.distance_to(tpos)
-			if d <= RANGE and d < bd:
-				bd = d
+			# Karekök almayan, işlemci dostu mesafe hesabı
+			var d_sq: float = e.pos.distance_squared_to(tpos) 
+			if d_sq <= range_sq and d_sq < bd_sq:
+				bd_sq = d_sq
 				target = e
+				
 		if target != null:
 			target.hp -= dmg
 			target.slow = 80
