@@ -152,10 +152,8 @@ func max_hp_for_wave(n: int) -> int:
 	# Doğrusal ve adil büyüme: 1. Dalga 4 can, 7. Dalga 14 can, 20. Dalga 35 can.
 	return 3 + int(n * 1.8)
 
-func tower_dmg() -> int:
-	# Hasar da canla aynı oranda büyür. 1. Dalga 1 hasar, 7. Dalga 3 hasar, 20. Dalga 7 hasar.
-	# Böylece vurulması gereken mermi sayısı oyun boyu neredeyse hep sabit kalır.
-	return 1 + int(wave_num /4.0)
+func tower_dmg() -> float:
+	return 1 + float(wave_num /4.0)
 func current_fire_rate() -> int:
 	# Hız çok daha pürüzsüz artar ve 25 kerede (saniyede 2.5 atış) kilitlenir.
 	return maxi(30, 55 - wave_num )
