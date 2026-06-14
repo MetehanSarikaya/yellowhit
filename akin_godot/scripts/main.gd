@@ -157,11 +157,11 @@ func max_hp_for_wave(n: int) -> int:
 
 func tower_dmg() -> int:
 	# Her 3 dalgada bir hasar 1 artar.
-	return 1 + int(wave_num / 3.0)
+	return 1 + int(wave_num / 4.0)
 
 func current_fire_rate() -> int:
-	# 55 kareden başlar, oyun sonu makineli tüfek gibi 15 kareye kadar iner.
-	return maxi(15, 55 - wave_num)
+	
+	return maxi(40, 55 - wave_num)
 
 func recompute_astar() -> void:
 	# Kulelerin merkez koordinatlarını döngüye girmeden bir kere hesapla
