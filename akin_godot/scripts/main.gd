@@ -310,7 +310,8 @@ func start_wave() -> void:
 
 func spawn_enemy() -> void:
 	var offset := Vector2(randf_range(-10, 10), randf_range(-10, 10))
-	var mh := max_hp_for_wave(wave_num)
+	var base_hp := max_hp_for_wave(wave_num)
+	var mh: float = base_hp * randf_range(0.85, 1.15)
 	var e := {
 		"pos": cell_center(spawn_cell) + offset,
 		"cell": spawn_cell,
@@ -399,7 +400,15 @@ func update_game() -> void:
 
 		# Her dalgada askerlere +0.012 hız eklenir. Kulelerin vurma süresi yavaşça daralır.
 		var current_speed: float = SPEED_NORM + (wave_num * 0.012)
-		var speed: float = SPEED_SLOW if e.slow > 0 else current_speed
+
+
+		# Yenisi (Analog): Kalan yavaşlatma süresini bir orana (0.0 ile 1.0 arası) çevir
+		var current_speed: float = SPEED_NORM + (wave_num * 0.012)
+		var slow_ratio: float = e.slow / 80.0 
+		
+		# lerp (Linear Interpolation) ile normal hızdan yavaş hıza pürüzsüz bir geçiş yap
+		var speed: float = lerp(current_speed, SPEED_SLOW, slow_ratio)
+	
 
 		var to_target: Vector2 = e.target_pos - e.pos
 		var d: float = to_target.length()
