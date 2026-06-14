@@ -385,9 +385,9 @@ func update_game() -> void:
 			continue
 
 		# Her dalgada askerlere +0.012 hız eklenir. Kulelerin vurma süresi yavaşça daralır.
-		var current_speed = SPEED_NORM + (wave_num * 0.012)
-		var speed := SPEED_SLOW if e.slow > 0 else current_speed
-		
+		var current_speed: float = SPEED_NORM + (wave_num * 0.012)
+		var speed: float = SPEED_SLOW if e.slow > 0 else current_speed
+
 		var to_target: Vector2 = e.target_pos - e.pos
 		var d: float = to_target.length()
 		if d < speed * 1.3:
