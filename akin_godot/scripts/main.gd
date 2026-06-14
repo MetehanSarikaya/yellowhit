@@ -398,9 +398,6 @@ func update_game() -> void:
 			i -= 1
 			continue
 
-		# Her dalgada askerlere +0.012 hız eklenir. Kulelerin vurma süresi yavaşça daralır.
-		var current_speed: float = SPEED_NORM + (wave_num * 0.012)
-
 
 		# Yenisi (Analog): Kalan yavaşlatma süresini bir orana (0.0 ile 1.0 arası) çevir
 		var current_speed: float = SPEED_NORM + (wave_num * 0.012)
