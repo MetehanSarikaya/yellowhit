@@ -150,15 +150,15 @@ func wave_size_for(n: int) -> int:
 
 func max_hp_for_wave(n: int) -> int:
 	# Doğrusal ve adil büyüme: 1. Dalga 4 can, 7. Dalga 14 can, 20. Dalga 35 can.
-	return 3 + int(n * 1.6)
+	return 3 + int(n * 1.8)
 
 func tower_dmg() -> int:
 	# Hasar da canla aynı oranda büyür. 1. Dalga 1 hasar, 7. Dalga 3 hasar, 20. Dalga 7 hasar.
 	# Böylece vurulması gereken mermi sayısı oyun boyu neredeyse hep sabit kalır.
-	return 1 + int(wave_num * 0.3)
+	return 1 + int(wave_num /4.0)
 func current_fire_rate() -> int:
 	# Hız çok daha pürüzsüz artar ve 25 kerede (saniyede 2.5 atış) kilitlenir.
-	return maxi(25, 60 - int(wave_num * 1.2))
+	return maxi(30, 55 - wave_num )
 
 func recompute_astar() -> void:
 	# Kulelerin merkez koordinatlarını döngüye girmeden bir kere hesapla
@@ -334,7 +334,7 @@ func update_game() -> void:
 	fr += 1
 
 	# Askerler 45 kare arayla gelmeye başlar, oyun sonu 15 kareye kadar sıklaşır.
-	var spawn_interval: int = maxi(15, 45 - wave_num)
+	var spawn_interval: int = maxi(15, 40 - int(wave_num * 1.3) )
 	if spawn_queue > 0 and fr >= next_spawn_fr:
 		spawn_enemy()
 		spawn_queue -= 1
